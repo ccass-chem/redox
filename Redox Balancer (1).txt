@@ -1,0 +1,1415 @@
+﻿<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>平衡氧化還原化學方程式教學工具</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap" rel="stylesheet">
+        <style>
+                body {
+                        font-family: 'Inter', 'Noto Sans TC', sans-serif;
+                        font-feature-settings: "tnum";
+                }
+
+                .font-cute {
+                        font-family: 'M PLUS Rounded 1c', 'Noto Sans TC', sans-serif;
+                }
+
+                .fade-in {
+                        animation: fadeIn 0.25s ease-out forwards;
+                }
+                
+                @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(4px); }
+                        to { opacity: 1; transform: translateY(0); }
+                }
+
+                /* Large Test Tube Styling */
+                .test-tube-large {
+                        width: 22px;
+                        height: 48px;
+                        border: 3px solid #64748b;
+                        border-top: none;
+                        border-bottom-left-radius: 11px;
+                        border-bottom-right-radius: 11px;
+                        position: relative;
+                        background-color: #ffffff;
+                        overflow: hidden;
+                        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+                        margin: 0 auto 6px auto;
+                }
+
+                .test-tube-large::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 65%;
+                        border-bottom-left-radius: 8px;
+                        border-bottom-right-radius: 8px;
+                        transition: all 0.3s ease;
+                }
+
+                /* Mini Test Tube for Inline Equation */
+                .test-tube-mini {
+                        width: 16px;
+                        height: 30px;
+                        border: 2px solid #64748b;
+                        border-top: none;
+                        border-bottom-left-radius: 8px;
+                        border-bottom-right-radius: 8px;
+                        position: relative;
+                        background-color: #ffffff;
+                        overflow: hidden;
+                        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+                        flex-shrink: 0;
+                }
+
+                .test-tube-mini::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 65%;
+                        border-bottom-left-radius: 6px;
+                        border-bottom-right-radius: 6px;
+                        transition: background-color 0.3s ease;
+                }
+
+                /* Solution / State Colors */
+                .color-purple::after { background-color: #a855f7; box-shadow: 0 0 6px #c084fc; } /* MnO4- */
+                .color-pink::after { background-color: #fbcfe8; }      /* Mn2+ */
+                .color-pale-green::after { background-color: #bbf7d0; } /* Fe2+ */
+                .color-yellow::after { background-color: #fde047; } /* Fe3+ */
+                .color-orange::after { background-color: #f97316; box-shadow: 0 0 6px #fdba74; } /* Cr2O7 2- */
+                .color-green::after { background-color: #22c55e; }    /* Cr3+ */
+                .color-brown::after { background-color: #92400e; }    /* I2 */
+                .color-orange-brown::after { background-color: #c2410c; } /* Br2 */
+                .color-blue::after { background-color: #3b82f6; }      /* Cu2+ */
+                .color-copper::after { background-color: #b45309; } /* Cu solid */
+                .color-metal::after { background-color: #94a3b8; }    /* Mg, Zn metal */
+                .color-clear::after { background-color: #e0f2fe; }    /* I-, Cl-, Br-, SO2, H2O, H+, etc. */
+                .color-gas::after { background-color: #f1f5f9; border-top: 2px dashed #94a3b8; } /* SO2, Cl2, H2 */
+
+                /* Reactant / Product Dropzone - Fixed sizing to prevent UI jump */
+                .drop-box {
+                        min-height: 200px;
+                        border: 3px dashed #cbd5e1;
+                        transition: border-color 0.2s ease, background-color 0.2s ease;
+                }
+
+                .drop-box.drag-over {
+                        border-color: #3b82f6;
+                        background-color: #eff6ff;
+                }
+
+                /* Math Typography */
+                .chem-sub { vertical-align: sub; font-size: 0.75em; line-height: 0; }
+                .chem-sup { vertical-align: super; font-size: 0.75em; line-height: 0; }
+                
+                .token-draggable {
+                        cursor: grab;
+                        transition: transform 0.1s;
+                }
+                .token-draggable:active {
+                        cursor: grabbing;
+                        transform: scale(0.95);
+                }
+                
+                /* Table styles for Oxidation Number changes */
+                .ox-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 0.5rem;
+                        margin-bottom: 0.5rem;
+                        font-size: 0.875rem;
+                }
+                .ox-table th, .ox-table td {
+                        border: 1px solid #cbd5e1;
+                        padding: 0.5rem;
+                        text-align: center;
+                }
+                .ox-table th {
+                        background-color: #f1f5f9;
+                        font-weight: 600;
+                        color: #475569;
+                }
+        </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 pb-12">
+
+        <div class="container mx-auto px-4 py-6 max-w-6xl">
+                <header class="text-center mb-8">
+                        <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 mb-2 tracking-tight font-cute flex flex-col items-center justify-center gap-3">
+                                <div class="flex items-center gap-3">
+                                        <span class="text-4xl">⚖️</span> 
+                                        <span>Redox Chemistry</span>
+                                        <span class="text-4xl">⚛️</span>
+                                </div>
+                                <div class="text-blue-600 text-2xl md:text-3xl mt-1">平衡氧化還原化學方程式</div>
+                        </h1>
+                </header>
+
+                <!-- Difficulty Navigation Cards -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+                        <h2 class="text-lg font-bold mb-4 text-slate-700 flex items-center gap-2">
+                                <span>🎯</span> 請選擇學習難度（各難度含 8 道精選題目）
+                        </h2>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                
+                                <button onclick="setDifficulty(1)" id="btn-diff-1" class="diff-btn bg-pink-50 hover:bg-pink-100 text-pink-900 border-2 border-pink-200 p-4 rounded-xl transition text-left flex flex-col justify-between shadow-xs">
+                                        <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                        <span class="text-3xl">🧪</span>
+                                                        <span class="text-xs font-bold uppercase tracking-wider bg-pink-200 text-pink-800 px-2 py-0.5 rounded-full">Level 1</span>
+                                                </div>
+                                                <div class="font-bold text-lg mb-1">難度 1</div>
+                                                <div class="text-xs text-pink-700 leading-relaxed">半反應式（一步一步提示導向）</div>
+                                        </div>
+                                </button>
+
+                                <button onclick="setDifficulty(2)" id="btn-diff-2" class="diff-btn bg-amber-50 hover:bg-amber-100 text-amber-900 border-2 border-amber-200 p-4 rounded-xl transition text-left flex flex-col justify-between shadow-xs">
+                                        <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                        <span class="text-3xl">⚗️</span>
+                                                        <span class="text-xs font-bold uppercase tracking-wider bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">Level 2</span>
+                                                </div>
+                                                <div class="font-bold text-lg mb-1">難度 2</div>
+                                                <div class="text-xs text-amber-700 leading-relaxed">半反應式（自主平衡，可點擊看提示）</div>
+                                        </div>
+                                </button>
+
+                                <button onclick="setDifficulty(3)" id="btn-diff-3" class="diff-btn bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-2 border-emerald-200 p-4 rounded-xl transition text-left flex flex-col justify-between shadow-xs">
+                                        <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                        <span class="text-3xl">🔬</span>
+                                                        <span class="text-xs font-bold uppercase tracking-wider bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">Level 3</span>
+                                                </div>
+                                                <div class="font-bold text-lg mb-1">難度 3</div>
+                                                <div class="text-xs text-emerald-700 leading-relaxed">完整方程式（分步引導平衡）</div>
+                                        </div>
+                                </button>
+
+                                <button onclick="setDifficulty(4)" id="btn-diff-4" class="diff-btn bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-2 border-indigo-200 p-4 rounded-xl transition text-left flex flex-col justify-between shadow-xs">
+                                        <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                        <span class="text-3xl">🎓</span>
+                                                        <span class="text-xs font-bold uppercase tracking-wider bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">Level 4</span>
+                                                </div>
+                                                <div class="font-bold text-lg mb-1">難度 4</div>
+                                                <div class="text-xs text-indigo-700 leading-relaxed">完整方程式（全自主平衡挑戰）</div>
+                                        </div>
+                                </button>
+
+                        </div>
+                </div>
+
+                <!-- Main Interactive Workspace -->
+                <div id="workspace" class="bg-white rounded-2xl shadow-md border border-slate-200 p-6 mb-8 hidden fade-in">
+                        
+                        <!-- Workspace Top Bar -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-6 gap-4">
+                                <div>
+                                        <div class="flex items-center gap-3 mb-1">
+                                                <span id="workspace-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"></span>
+                                                <h2 id="workspace-title" class="text-2xl font-extrabold text-slate-800"></h2>
+                                        </div>
+                                        <p class="text-sm text-slate-500">請點擊選擇題目，並從下方工具箱拖拽或點擊物質加入左右兩側方格</p>
+                                </div>
+                                
+                                <!-- Equation Selector Buttons (Scrollable Horizontal Bar) -->
+                                <div class="flex items-center gap-1.5 overflow-x-auto py-1 max-w-full" id="equation-selector-container">
+                                        <!-- Dynamic tabs for 8 equations -->
+                                </div>
+                        </div>
+
+                        <!-- Step Wizard Container (Level 1 & 3) -->
+                        <div id="wizard-container" class="mb-6 bg-slate-50 p-5 rounded-xl border border-slate-200 hidden shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                        <h3 class="font-bold text-slate-700 text-base flex items-center gap-2">
+                                                <span>📌</span> 當前步驟指示 (步驟 <span id="current-step-num">1</span> / <span id="total-step-num">4</span>)
+                                        </h3>
+                                        <span id="step-status-pill" class="text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 font-bold">進行中</span>
+                                </div>
+                                <div id="step-instruction" class="text-lg text-slate-800 font-extrabold mb-2"></div>
+                                <!-- Area for Oxidation Number Table / Extended Hint -->
+                                <div id="step-extended-info" class="mb-3"></div>
+                                <div id="step-hint-text" class="text-base text-slate-600 bg-white p-4 rounded-lg border border-slate-200 mb-4 shadow-sm"></div>
+                                
+                                <div class="flex flex-col sm:flex-row items-center gap-4">
+                                        <button onclick="verifyCurrentStep()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md">
+                                                驗證並顯示下一步 🚀
+                                        </button>
+                                        <span id="step-feedback" class="text-base font-medium flex-grow"></span>
+                                </div>
+                        </div>
+
+                        <!-- Collapsible Hint Drawer (Level 2 & 4) -->
+                        <div id="hint-drawer" class="mb-6 hidden">
+                                <button onclick="toggleHintDrawer()" class="w-full text-left bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 font-bold p-3 rounded-xl transition flex justify-between items-center">
+                                        <span class="flex items-center gap-2">💡 點擊查看/隱藏平衡步驟提示</span>
+                                        <span id="hint-drawer-arrow">▼</span>
+                                </button>
+                                <div id="hint-drawer-content" class="hidden bg-amber-50/50 border-x border-b border-amber-200 p-4 rounded-b-xl text-sm text-amber-900 space-y-2">
+                                        <!-- Steps listed here -->
+                                </div>
+                        </div>
+
+                        <!-- Draggable & Clickable Circle Tokens Toolbox -->
+                        <div class="mb-8 bg-slate-100 p-5 rounded-xl border border-slate-200">
+                                <div class="text-base font-bold text-slate-700 mb-4 text-center md:text-left flex items-center gap-2 justify-center md:justify-start">
+                                        <span>💡</span> 
+                                        <span>請將下方的物質直接<strong>拖拽</strong>（或點擊下方按鈕）加入反應物(左側)或生成物(右側)方格中：</span>
+                                </div>
+                                <div class="flex flex-wrap items-start justify-center gap-6">
+                                        
+                                        <!-- e- Token -->
+                                        <div class="flex flex-col items-center gap-1.5">
+                                                <div class="bg-white border-2 border-slate-300 hover:border-blue-500 rounded-xl p-3 transition shadow-sm token-draggable flex items-center justify-center w-16 h-16" 
+                                                          draggable="true" 
+                                                          ondragstart="handleTokenDragStart(event, 'e-')">
+                                                        <div class="text-2xl font-bold font-mono">e<span class="chem-sup">-</span></div>
+                                                </div>
+                                                <span class="text-xs font-semibold text-slate-500 mb-1">電子</span>
+                                                <div class="flex gap-1.5">
+                                                        <button onclick="addSpeciesDirectly('e-', 'reactants')" class="text-xs font-bold bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-lg hover:bg-blue-200 active:scale-95 transition whitespace-nowrap">+ 左側</button>
+                                                        <button onclick="addSpeciesDirectly('e-', 'products')" class="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition whitespace-nowrap">+ 右側</button>
+                                                </div>
+                                        </div>
+
+                                        <!-- H+ Token -->
+                                        <div class="flex flex-col items-center gap-1.5">
+                                                <div class="bg-white border-2 border-slate-300 hover:border-blue-500 rounded-xl p-3 transition shadow-sm token-draggable flex items-center justify-center w-16 h-16" 
+                                                          draggable="true" 
+                                                          ondragstart="handleTokenDragStart(event, 'H+')">
+                                                        <div class="text-2xl font-bold font-mono">H<span class="chem-sup">+</span></div>
+                                                </div>
+                                                <span class="text-xs font-semibold text-slate-500 mb-1">氫離子</span>
+                                                <div class="flex gap-1.5">
+                                                        <button onclick="addSpeciesDirectly('H+', 'reactants')" class="text-xs font-bold bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-lg hover:bg-blue-200 active:scale-95 transition whitespace-nowrap">+ 左側</button>
+                                                        <button onclick="addSpeciesDirectly('H+', 'products')" class="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition whitespace-nowrap">+ 右側</button>
+                                                </div>
+                                        </div>
+
+                                        <!-- H2O Token -->
+                                        <div class="flex flex-col items-center gap-1.5">
+                                                <div class="bg-white border-2 border-slate-300 hover:border-blue-500 rounded-xl p-3 transition shadow-sm token-draggable flex items-center justify-center w-16 h-16" 
+                                                          draggable="true" 
+                                                          ondragstart="handleTokenDragStart(event, 'H2O')">
+                                                        <div class="text-2xl font-bold font-mono">H<span class="chem-sub">2</span>O</div>
+                                                </div>
+                                                <span class="text-xs font-semibold text-slate-500 mb-1">水分子</span>
+                                                <div class="flex gap-1.5">
+                                                        <button onclick="addSpeciesDirectly('H2O', 'reactants')" class="text-xs font-bold bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-lg hover:bg-blue-200 active:scale-95 transition whitespace-nowrap">+ 左側</button>
+                                                        <button onclick="addSpeciesDirectly('H2O', 'products')" class="text-xs font-bold bg-green-100 text-green-700 px-2.5 py-1.5 rounded-lg hover:bg-green-200 active:scale-95 transition whitespace-nowrap">+ 右側</button>
+                                                </div>
+                                        </div>
+
+                                </div>
+                        </div>
+
+                        <!-- Two Box Layout: Reactants & Products -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch mb-8">
+                                
+                                <!-- Reactants Box (Left) -->
+                                <div class="lg:col-span-5 flex flex-col">
+                                        <div class="text-center font-bold text-slate-700 mb-2 flex items-center justify-center gap-2">
+                                                <span class="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">左側</span>
+                                                <span class="text-lg">反應物 (Reactants)</span>
+                                        </div>
+                                        <div id="reactants-box" 
+                                                  class="drop-box flex-grow bg-slate-50 rounded-2xl p-4 flex flex-row items-center justify-center flex-wrap gap-3 shadow-inner min-h-[220px]"
+                                                  ondragover="handleDragOver(event)" 
+                                                  ondragleave="handleDragLeave(event)" 
+                                                  ondrop="handleDrop(event, 'reactants')">
+                                                <!-- Dynamic species cards generated here -->
+                                        </div>
+                                </div>
+
+                                <!-- Center Reaction Arrow -->
+                                <div class="lg:col-span-2 flex flex-col items-center justify-center py-2 lg:py-4">
+                                        <div class="text-5xl lg:text-7xl font-extrabold text-blue-600 tracking-tighter drop-shadow-sm select-none hidden lg:block">➔</div>
+                                        <div class="text-5xl font-extrabold text-blue-600 tracking-tighter drop-shadow-sm select-none block lg:hidden">⬇</div>
+                                </div>
+
+                                <!-- Products Box (Right) -->
+                                <div class="lg:col-span-5 flex flex-col">
+                                        <div class="text-center font-bold text-slate-700 mb-2 flex items-center justify-center gap-2">
+                                                <span class="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full">右側</span>
+                                                <span class="text-lg">生成物 (Products)</span>
+                                        </div>
+                                        <div id="products-box" 
+                                                  class="drop-box flex-grow bg-slate-50 rounded-2xl p-4 flex flex-row items-center justify-center flex-wrap gap-3 shadow-inner min-h-[220px]"
+                                                  ondragover="handleDragOver(event)" 
+                                                  ondragleave="handleDragLeave(event)" 
+                                                  ondrop="handleDrop(event, 'products')">
+                                                <!-- Dynamic species cards generated here -->
+                                        </div>
+                                </div>
+
+                        </div>
+
+                        <!-- Action Controls & Feedback -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-6 gap-4">
+                                <button onclick="resetCurrentWorkspace()" class="w-full sm:w-auto px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl transition">
+                                        🔄 重設當前題目
+                                </button>
+                                <button onclick="checkAnswer()" id="check-btn" class="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-md transition">
+                                        極速檢查答案 ✨
+                                </button>
+                        </div>
+
+                        <div id="feedback-banner" class="mt-4 p-4 rounded-xl text-center font-bold text-base hidden fade-in"></div>
+
+                        <!-- Agent Identification Section -->
+                        <div id="agent-section" class="mt-10 border-t-2 border-dashed border-slate-200 pt-8 hidden">
+                                <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-2xl">🏷️</span>
+                                        <h3 class="text-xl font-bold text-slate-800">反應物屬性辨識：氧化劑與還原劑</h3>
+                                </div>
+                                <p class="text-sm text-slate-500 mb-4">根據實驗結果與氧化數變化，請為下列物質分類為氧化劑（O.A.）或還原劑（R.A.）：</p>
+
+                                <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-xs mb-4">
+                                        <table class="w-full text-left border-collapse min-w-[500px]">
+                                                <thead>
+                                                        <tr class="bg-slate-100 border-b border-slate-200 text-slate-700 text-sm">
+                                                                <th class="p-3.5">反應物 (Reactant)</th>
+                                                                <th class="p-3.5">水溶液外觀/狀態描述</th>
+                                                                <th class="p-3.5">分類選項 (O.A. / R.A.)</th>
+                                                        </tr>
+                                                </thead>
+                                                <tbody id="agent-table-body" class="divide-y divide-slate-200 text-base">
+                                                        <!-- Dynamic rows -->
+                                                </tbody>
+                                        </table>
+                                </div>
+
+                                <div class="flex justify-end">
+                                        <button onclick="checkAgents()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-xs transition">
+                                                檢查分類答案
+                                        </button>
+                                </div>
+                                <div id="agent-feedback" class="mt-3 p-3 rounded-xl text-center font-bold hidden"></div>
+                        </div>
+
+                </div>
+        </div>
+
+        <script>
+                // Active Navigation State Variables
+                let currentDifficulty = 0;
+                let currentEqIndex = 0;
+                let currentStepIndex = 0;
+                let draggedTokenType = null;
+
+                // Species Color Map & Visual Render Settings
+                const speciesConfig = {
+                        'MnO4-': { html: 'MnO<span class="chem-sub">4</span><span class="chem-sup">-</span>', colorClass: 'color-purple', name: '高錳酸根離子', isMain: true },
+                        'Mn2+': { html: 'Mn<span class="chem-sup">2+</span>', colorClass: 'color-pink', name: '錳(II)離子', isMain: true },
+                        'Fe2+': { html: 'Fe<span class="chem-sup">2+</span>', colorClass: 'color-pale-green', name: '鐵(II)離子', isMain: true },
+                        'Fe3+': { html: 'Fe<span class="chem-sup">3+</span>', colorClass: 'color-yellow', name: '鐵(III)離子', isMain: true },
+                        'Cr2O72-': { html: 'Cr<span class="chem-sub">2</span>O<span class="chem-sub">7</span><span class="chem-sup">2-</span>', colorClass: 'color-orange', name: '重鉻酸根離子', isMain: true },
+                        'Cr3+': { html: 'Cr<span class="chem-sup">3+</span>', colorClass: 'color-green', name: '鉻(III)離子', isMain: true },
+                        'SO2': { html: 'SO<span class="chem-sub">2</span>', colorClass: 'color-gas', name: '二氧化硫', isMain: true },
+                        'SO42-': { html: 'SO<span class="chem-sub">4</span><span class="chem-sup">2-</span>', colorClass: 'color-clear', name: '硫酸根離子', isMain: true },
+                        'I-': { html: 'I<span class="chem-sup">-</span>', colorClass: 'color-clear', name: '碘離子', isMain: true },
+                        'I2': { html: 'I<span class="chem-sub">2</span>', colorClass: 'color-brown', name: '碘分子', isMain: true },
+                        'Br-': { html: 'Br<span class="chem-sup">-</span>', colorClass: 'color-clear', name: '溴離子', isMain: true },
+                        'Br2': { html: 'Br<span class="chem-sub">2</span>', colorClass: 'color-orange-brown', name: '溴分子', isMain: true },
+                        'Cl2': { html: 'Cl<span class="chem-sub">2</span>', colorClass: 'color-gas', name: '氯氣', isMain: true },
+                        'Cl-': { html: 'Cl<span class="chem-sup">-</span>', colorClass: 'color-clear', name: '氯離子', isMain: true },
+                        'Mg': { html: 'Mg', colorClass: 'color-metal', name: '鎂金屬', isMain: true },
+                        'Mg2+': { html: 'Mg<span class="chem-sup">2+</span>', colorClass: 'color-clear', name: '鎂離子', isMain: true },
+                        'Zn': { html: 'Zn', colorClass: 'color-metal', name: '鋅金屬', isMain: true },
+                        'Zn2+': { html: 'Zn<span class="chem-sup">2+</span>', colorClass: 'color-clear', name: '鋅離子', isMain: true },
+                        'Cu': { html: 'Cu', colorClass: 'color-copper', name: '銅金屬', isMain: true },
+                        'Cu2+': { html: 'Cu<span class="chem-sup">2+</span>', colorClass: 'color-blue', name: '銅(II)離子', isMain: true },
+                        'H2': { html: 'H<span class="chem-sub">2</span>', colorClass: 'color-gas', name: '氫氣', isMain: true },
+                        'H+': { html: 'H<span class="chem-sup">+</span>', colorClass: 'color-clear', name: '氫離子', isMain: false, isToken: true },
+                        'e-': { html: 'e<span class="chem-sup">-</span>', colorClass: 'color-clear', name: '電子', isMain: false, isToken: true },
+                        'H2O': { html: 'H<span class="chem-sub">2</span>O', colorClass: 'color-clear', name: '水分子', isMain: false, isToken: true }
+                };
+
+                // Atomic Data & Charge Values for Auto-Validation
+                const speciesProperties = {
+                        'MnO4-': { Mn: 1, O: 4, charge: -1 },
+                        'Mn2+': { Mn: 1, charge: 2 },
+                        'Fe2+': { Fe: 1, charge: 2 },
+                        'Fe3+': { Fe: 1, charge: 3 },
+                        'Cr2O72-': { Cr: 2, O: 7, charge: -2 },
+                        'Cr3+': { Cr: 1, charge: 3 },
+                        'SO2': { S: 1, O: 2, charge: 0 },
+                        'SO42-': { S: 1, O: 4, charge: -2 },
+                        'I-': { I: 1, charge: -1 },
+                        'I2': { I: 2, charge: 0 },
+                        'Br-': { Br: 1, charge: -1 },
+                        'Br2': { Br: 2, charge: 0 },
+                        'Cl2': { Cl: 2, charge: 0 },
+                        'Cl-': { Cl: 1, charge: -1 },
+                        'Mg': { Mg: 1, charge: 0 },
+                        'Mg2+': { Mg: 1, charge: 2 },
+                        'Zn': { Zn: 1, charge: 0 },
+                        'Zn2+': { Zn: 1, charge: 2 },
+                        'Cu': { Cu: 1, charge: 0 },
+                        'Cu2+': { Cu: 1, charge: 2 },
+                        'H2': { H: 2, charge: 0 },
+                        'H+': { H: 1, charge: 1 },
+                        'e-': { charge: -1 },
+                        'H2O': { H: 2, O: 1, charge: 0 }
+                };
+
+                // Comprehensive Equation Database (8 questions per level based on DSE Curriculum)
+                const equationsData = {
+                        halfReactions: [
+                                {
+                                        id: 'MnO4_Mn2',
+                                        title: 'MnO₄⁻    ➔    Mn²⁺',
+                                        reactantName: 'MnO<span class="chem-sub">4</span><span class="chem-sup">-</span>(aq)',
+                                        reactantRole: 'O.A.',
+                                        desc: '紫色高錳酸離子（強氧化劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'MnO4-', count: 1 }],
+                                                products: [{ id: 'Mn2+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'MnO4-': 1, 'H+': 8, 'e-': 5 },
+                                                products: { 'Mn2+': 1, 'H2O': 4 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Mn', instruction: "步驟 1：平衡主要元素 (Mn)", hint: "檢查並確保兩邊的 Mn 原子數目相同。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子 (O)", hint: "左邊有 4 個 O，請加入 H₂O 到右側並調整係數為 4。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子 (H)", hint: "右邊有 8 個 H，請加入 H⁺ 到左側並調整係數為 8。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側總電荷為 +7，右側為 +2。請在左側加入 5e⁻ 使電荷平衡。" }
+                                        ]
+                                },
+                                {
+                                        id: 'Cr2O7_Cr3',
+                                        title: 'Cr₂O₇²⁻    ➔    Cr³⁺',
+                                        reactantName: 'Cr<span class="chem-sub">2</span>O<span class="chem-sub">7</span><span class="chem-sup">2-</span>(aq)',
+                                        reactantRole: 'O.A.',
+                                        desc: '橙色重鉻酸離子（強氧化劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'Cr2O72-', count: 1 }],
+                                                products: [{ id: 'Cr3+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Cr2O72-': 1, 'H+': 14, 'e-': 6 },
+                                                products: { 'Cr3+': 2, 'H2O': 7 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Cr', instruction: "步驟 1：平衡主要元素 (Cr)", hint: "左邊有 2 個 Cr，請將右側 Cr³⁺ 的係數調整為 2。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子 (O)", hint: "左邊有 7 個 O，請拖拽 H₂O 到右側並調整其係數為 7。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子 (H)", hint: "右側有 14 個 H，請拖拽 H⁺ 到左側並調整係數為 14。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側總電荷為 +12，右側為 +6。請在左側加入 6e⁻。" }
+                                        ]
+                                },
+                                {
+                                        id: 'Fe2_Fe3',
+                                        title: 'Fe²⁺    ➔    Fe³⁺',
+                                        reactantName: 'Fe<span class="chem-sup">2+</span>(aq)',
+                                        reactantRole: 'R.A.',
+                                        desc: '淺綠色鐵(II)離子（還原劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'Fe2+', count: 1 }],
+                                                products: [{ id: 'Fe3+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Fe2+': 1 },
+                                                products: { 'Fe3+': 1, 'e-': 1 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Fe', instruction: "步驟 1：平衡主要元素 (Fe)", hint: "兩邊 Fe 數量皆為 1，已平衡。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "此反應無氧原子，請直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "此反應無氫原子，請直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側電荷 = +2，右側電荷 = +3。請在右側加入 1e⁻。" }
+                                        ]
+                                },
+                                {
+                                        id: 'I_I2',
+                                        title: 'I⁻    ➔    I₂',
+                                        reactantName: 'I<span class="chem-sup">-</span>(aq)',
+                                        reactantRole: 'R.A.',
+                                        desc: '無色碘離子（還原劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'I-', count: 1 }],
+                                                products: [{ id: 'I2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'I-': 2 },
+                                                products: { 'I2': 1, 'e-': 2 }
+                                        },
+                                        steps: [
+                                                { checkType: 'I', instruction: "步驟 1：平衡主要元素 (I)", hint: "右邊有 2 個 I 原子，請將左側 I⁻ 係數調整為 2。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "無氫原子，直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側電荷 = -2，右側電荷 = 0。請在右側加入 2e⁻。" }
+                                        ]
+                                },
+                                {
+                                        id: 'SO2_SO4',
+                                        title: 'SO₂    ➔    SO₄²⁻',
+                                        reactantName: 'SO<span class="chem-sub">2</span>(g)',
+                                        reactantRole: 'R.A.',
+                                        desc: '二氧化硫（常見還原劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'SO2', count: 1 }],
+                                                products: [{ id: 'SO42-', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'SO2': 1, 'H2O': 2 },
+                                                products: { 'SO42-': 1, 'H+': 4, 'e-': 2 }
+                                        },
+                                        steps: [
+                                                { checkType: 'S', instruction: "步驟 1：平衡主要元素 (S)", hint: "兩邊 S 原子皆為 1，已平衡。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "左邊有 2 個 O，右邊有 4 個 O。請在左側加入 2 個 H₂O。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "左邊有 4 個 H，請在右側加入 4 個 H⁺。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側電荷 = 0，右側電荷 = +2。請在右側加入 2e⁻。" }
+                                        ]
+                                },
+                                {
+                                        id: 'Br_Br2',
+                                        title: 'Br⁻    ➔    Br₂',
+                                        reactantName: 'Br<span class="chem-sup">-</span>(aq)',
+                                        reactantRole: 'R.A.',
+                                        desc: '無色溴離子（還原劑）',
+                                        initialState: {
+                                                reactants: [{ id: 'Br-', count: 1 }],
+                                                products: [{ id: 'Br2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Br-': 2 },
+                                                products: { 'Br2': 1, 'e-': 2 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Br', instruction: "步驟 1：平衡主要元素 (Br)", hint: "右邊有 2 個 Br，請將左側 Br⁻ 係數改為 2。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "無氫原子，直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側電荷 = -2，右側為 0。請在右側加入 2e⁻。" }
+                                        ]
+                                },
+                                {
+                                        id: 'Mg_Mg2',
+                                        title: 'Mg    ➔    Mg²⁺',
+                                        reactantName: 'Mg(s)',
+                                        reactantRole: 'R.A.',
+                                        desc: '鎂陽極（金屬單質，失電子氧化）',
+                                        initialState: {
+                                                reactants: [{ id: 'Mg', count: 1 }],
+                                                products: [{ id: 'Mg2+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Mg': 1 },
+                                                products: { 'Mg2+': 1, 'e-': 2 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Mg', instruction: "步驟 1：平衡主要元素 (Mg)", hint: "兩側 Mg 原子數相同。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "無氫原子，直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "右側電荷為 +2，請在右側加入 2e⁻ 使其與左側 0 平衡。" }
+                                        ]
+                                },
+                                {
+                                        id: 'Cu2_Cu',
+                                        title: 'Cu²⁺    ➔    Cu',
+                                        reactantName: 'Cu<span class="chem-sup">2+</span>(aq)',
+                                        reactantRole: 'O.A.',
+                                        desc: '藍色銅(II)離子（陰極得電子還原）',
+                                        initialState: {
+                                                reactants: [{ id: 'Cu2+', count: 1 }],
+                                                products: [{ id: 'Cu', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Cu2+': 1, 'e-': 2 },
+                                                products: { 'Cu': 1 }
+                                        },
+                                        steps: [
+                                                { checkType: 'Cu', instruction: "步驟 1：平衡主要元素 (Cu)", hint: "兩側 Cu 原子數相同。" },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡氫原子", hint: "無氫原子，直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：加電子 (e⁻) 平衡總電荷", hint: "左側電荷為 +2，請在左側加入 2e⁻ 使其降為 0。" }
+                                        ]
+                                }
+                        ],
+                        fullReactions: [
+                                {
+                                        id: 'MnO4_Fe2_Full',
+                                        title: 'MnO₄⁻ + Fe²⁺    ➔    Mn²⁺ + Fe³⁺',
+                                        reactants: [
+                                                { name: 'MnO<span class="chem-sub">4</span><span class="chem-sup">-</span>(aq)', role: 'O.A.', desc: '紫色高錳酸根' },
+                                                { name: 'Fe<span class="chem-sup">2+</span>(aq)', role: 'R.A.', desc: '淺綠色鐵(II)離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'MnO4-', count: 1 }, { id: 'Fe2+', count: 1 }],
+                                                products: [{ id: 'Mn2+', count: 1 }, { id: 'Fe3+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'MnO4-': 1, 'Fe2+': 5, 'H+': 8 },
+                                                products: { 'Mn2+': 1, 'Fe3+': 5, 'H2O': 4 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'main_ratio_full_1', 
+                                                        instruction: "步驟 1：寫出氧化數變化並平衡電子轉移比例", 
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['MnO₄⁻ ➔ Mn²⁺', 'Mn', '+7', '+2', '減少 5', '得 5e⁻ (還原)'],
+                                                                        ['Fe²⁺ ➔ Fe³⁺', 'Fe', '+2', '+3', '增加 1', '失 1e⁻ (氧化)']
+                                                                ]
+                                                        },
+                                                        hint: "為了讓得失電子數目相等，Fe²⁺ 失電子的過程需要發生 5 次。請將 Fe²⁺ 及 Fe³⁺ 係數調整為 5，而 Mn 相關物質維持係數 1。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡 O 原子", hint: "檢查氧原子：左側 MnO₄⁻ 提供 4 個 O，右側需要 4 個 H₂O 來平衡。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡 H 原子", hint: "檢查氫原子：右側有 4 個 H₂O (即 8 個 H)，左側需要加入 8 個 H⁺。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查兩側總電荷是否平衡", hint: "左側總電荷：-1 + (5 × +2) + (8 × +1) = +17\n右側總電荷：+2 + (5 × +3) = +17\n電荷完全平衡！" }
+                                        ]
+                                },
+                                {
+                                        id: 'Cr2O7_Fe2_Full',
+                                        title: 'Cr₂O₇²⁻ + Fe²⁺    ➔    Cr³⁺ + Fe³⁺',
+                                        reactants: [
+                                                { name: 'Cr<span class="chem-sub">2</span>O<span class="chem-sub">7</span><span class="chem-sup">2-</span>(aq)', role: 'O.A.', desc: '橙色重鉻酸根' },
+                                                { name: 'Fe<span class="chem-sup">2+</span>(aq)', role: 'R.A.', desc: '淺綠色鐵(II)離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'Cr2O72-', count: 1 }, { id: 'Fe2+', count: 1 }],
+                                                products: [{ id: 'Cr3+', count: 1 }, { id: 'Fe3+', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Cr2O72-': 1, 'Fe2+': 6, 'H+': 14 },
+                                                products: { 'Cr3+': 2, 'Fe3+': 6, 'H2O': 7 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'main_ratio_full_2', 
+                                                        instruction: "步驟 1：寫出氧化數變化並平衡主要元素與電子得失", 
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['Cr₂O₇²⁻ ➔ 2Cr³⁺', 'Cr', '+6 (共2個)', '+3 (共2個)', '每個減3', '共得 6e⁻'],
+                                                                        ['Fe²⁺ ➔ Fe³⁺', 'Fe', '+2', '+3', '增加 1', '失 1e⁻']
+                                                                ]
+                                                        },
+                                                        hint: "注意 Cr₂O₇²⁻ 中有 2 個 Cr，所以生成物 Cr³⁺ 的係數必須先設為 2。此過程共得 6e⁻，因此 Fe²⁺ 需提供 6e⁻，請將 Fe²⁺ 和 Fe³⁺ 係數設為 6。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡 O 原子", hint: "左側有 7 個 O，請拖拽並在右側加入 7 個 H₂O。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡 H 原子", hint: "右側有 14 個 H (7 × 2)，請拖拽並在左側加入 14 個 H⁺。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷是否平衡", hint: "左側總電荷：-2 + (6 × 2) + 14 = +24\n右側總電荷：(2 × 3) + (6 × 3) = +24\n平衡正確！" }
+                                        ]
+                                },
+                                {
+                                        id: 'Fe3_I_Full',
+                                        title: 'Fe³⁺ + I⁻    ➔    Fe²⁺ + I₂',
+                                        reactants: [
+                                                { name: 'Fe<span class="chem-sup">3+</span>(aq)', role: 'O.A.', desc: '黃色鐵(III)離子' },
+                                                { name: 'I<span class="chem-sup">-</span>(aq)', role: 'R.A.', desc: '無色碘離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'Fe3+', count: 1 }, { id: 'I-', count: 1 }],
+                                                products: [{ id: 'Fe2+', count: 1 }, { id: 'I2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Fe3+': 2, 'I-': 2 },
+                                                products: { 'Fe2+': 2, 'I2': 1 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'main_ratio_full_3', 
+                                                        instruction: "步驟 1：寫出氧化數變化，平衡元素與電子得失",
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['Fe³⁺ ➔ Fe²⁺', 'Fe', '+3', '+2', '減少 1', '得 1e⁻'],
+                                                                        ['2I⁻ ➔ I₂', 'I', '-1 (共2個)', '0 (共2個)', '每個增1', '共失 2e⁻']
+                                                                ]
+                                                        },
+                                                        hint: "生成 1 個 I₂ 需要 2 個 I⁻，過程共失 2e⁻。為平衡電子，需要 2 個 Fe³⁺ 接收電子，請將 Fe³⁺ 和 Fe²⁺ 係數設為 2，I⁻ 設為 2。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：檢查氧原子 (O)", hint: "本反應無氧參與，直接點擊驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：檢查氫原子 (H)", hint: "本反應無氫參與，直接點擊驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷是否平衡", hint: "左側電荷：(2 × +3) + (2 × -1) = +4\n右側電荷：(2 × +2) + 0 = +4" }
+                                        ]
+                                },
+                                {
+                                        id: 'Cr2O7_Br_Full',
+                                        title: 'Cr₂O₇²⁻ + Br⁻    ➔    Cr³⁺ + Br₂',
+                                        reactants: [
+                                                { name: 'Cr<span class="chem-sub">2</span>O<span class="chem-sub">7</span><span class="chem-sup">2-</span>(aq)', role: 'O.A.', desc: '橙色重鉻酸根' },
+                                                { name: 'Br<span class="chem-sup">-</span>(aq)', role: 'R.A.', desc: '無色溴離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'Cr2O72-', count: 1 }, { id: 'Br-', count: 1 }],
+                                                products: [{ id: 'Cr3+', count: 1 }, { id: 'Br2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Cr2O72-': 1, 'Br-': 6, 'H+': 14 },
+                                                products: { 'Cr3+': 2, 'Br2': 3, 'H2O': 7 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'main_ratio_full_4', 
+                                                        instruction: "步驟 1：平衡 Cr 與 Br 及計算電子轉移",
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['Cr₂O₇²⁻ ➔ 2Cr³⁺', 'Cr', '+6 (共2個)', '+3 (共2個)', '每個減3', '共得 6e⁻'],
+                                                                        ['2Br⁻ ➔ Br₂', 'Br', '-1 (共2個)', '0 (共2個)', '每個增1', '共失 2e⁻ (每對)']
+                                                                ]
+                                                        }, 
+                                                        hint: "Cr 變為 2Cr³⁺ 總共得 6e⁻；每生成 1 個 Br₂ 失 2e⁻。故需要 3 個 Br₂ (即 6 個 Br⁻) 才能提供 6e⁻。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡 O 原子", hint: "拖拽 H₂O 到右側，並調整係數為 7 以平衡左側的 7 個氧。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡 H 原子", hint: "拖拽 H⁺ 到左側，並調整係數為 14 以平衡右側的水。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷平衡", hint: "左側：-2 - 6 + 14 = +6\n右側：2 × +3 = +6" }
+                                        ]
+                                },
+                                {
+                                        id: 'SO2_Br2_Full',
+                                        title: 'SO₂ + Br₂    ➔    SO₄²⁻ + Br⁻',
+                                        reactants: [
+                                                { name: 'SO<span class="chem-sub">2</span>(g)', role: 'R.A.', desc: '二氧化硫' },
+                                                { name: 'Br<span class="chem-sub">2</span>(aq)', role: 'O.A.', desc: '橙棕色溴水' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'SO2', count: 1 }, { id: 'Br2', count: 1 }],
+                                                products: [{ id: 'SO42-', count: 1 }, { id: 'Br-', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'SO2': 1, 'Br2': 1, 'H2O': 2 },
+                                                products: { 'SO42-': 1, 'Br-': 2, 'H+': 4 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'Br', 
+                                                        instruction: "步驟 1：分析氧化數與平衡主要元素",
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['SO₂ ➔ SO₄²⁻', 'S', '+4', '+6', '增加 2', '失 2e⁻'],
+                                                                        ['Br₂ ➔ 2Br⁻', 'Br', '0 (共2個)', '-1 (共2個)', '每個減1', '共得 2e⁻']
+                                                                ]
+                                                        },
+                                                        hint: "電子得失已經相等 (2e⁻)。左側有 1 個 Br₂，只需將右側 Br⁻ 係數改為 2，S 則維持 1。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡 O 原子", hint: "左側 2 個 O，右側 4 個 O。請拖拽 2 個 H₂O 到左側。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡 H 原子", hint: "左側現在有 4 個 H (來自水)，請拖拽 4 個 H⁺ 到右側。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷", hint: "左側：0\n右側：-2 + (-2) + (+4) = 0。平衡完畢！" }
+                                        ]
+                                },
+                                {
+                                        id: 'Mg_Cu2_Full',
+                                        title: 'Mg + Cu²⁺    ➔    Mg²⁺ + Cu',
+                                        reactants: [
+                                                { name: 'Mg(s)', role: 'R.A.', desc: '鎂金屬' },
+                                                { name: 'Cu<span class="chem-sup">2+</span>(aq)', role: 'O.A.', desc: '藍色銅(II)離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'Mg', count: 1 }, { id: 'Cu2+', count: 1 }],
+                                                products: [{ id: 'Mg2+', count: 1 }, { id: 'Cu', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Mg': 1, 'Cu2+': 1 },
+                                                products: { 'Mg2+': 1, 'Cu': 1 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'Mg', 
+                                                        instruction: "步驟 1：寫出氧化數變化", 
+                                                        tableData: {
+                                                                headers: ['物質', '元素', '反應前', '反應後', '得失電子'],
+                                                                rows: [
+                                                                        ['Mg ➔ Mg²⁺', 'Mg', '0', '+2', '失 2e⁻'],
+                                                                        ['Cu²⁺ ➔ Cu', 'Cu', '+2', '0', '得 2e⁻']
+                                                                ]
+                                                        },
+                                                        hint: "得失電子數已經相等(2e⁻)，且 Mg 和 Cu 數量皆為 1，已經平衡。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：檢查氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：檢查氫原子", hint: "無氫原子，直接驗證。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷", hint: "左側 +2，右側 +2，完全平衡！" }
+                                        ]
+                                },
+                                {
+                                        id: 'Zn_H_Full',
+                                        title: 'Zn + H⁺    ➔    Zn²⁺ + H₂',
+                                        reactants: [
+                                                { name: 'Zn(s)', role: 'R.A.', desc: '鋅電極' },
+                                                { name: 'H<span class="chem-sup">+</span>(aq)', role: 'O.A.', desc: '稀硫酸中的氫離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'Zn', count: 1 }, { id: 'H+', count: 1 }],
+                                                products: [{ id: 'Zn2+', count: 1 }, { id: 'H2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'Zn': 1, 'H+': 2 },
+                                                products: { 'Zn2+': 1, 'H2': 1 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'Zn', 
+                                                        instruction: "步驟 1：寫出氧化數變化",
+                                                        tableData: {
+                                                                headers: ['物質', '元素', '反應前', '反應後', '得失電子'],
+                                                                rows: [
+                                                                        ['Zn ➔ Zn²⁺', 'Zn', '0', '+2', '失 2e⁻'],
+                                                                        ['2H⁺ ➔ H₂', 'H', '+1 (共2個)', '0 (共2個)', '共得 2e⁻']
+                                                                ]
+                                                        },
+                                                        hint: "Zn 失 2e⁻，而生成一個 H₂ 需 2 個 H⁺ 共得 2e⁻。Zn 係數為 1。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：檢查氧原子", hint: "無氧原子，直接驗證。" },
+                                                { checkType: 'H', instruction: "步驟 3：平衡氫原子 H", hint: "右側有 1 個 H₂ (2個H)，請將左側 H⁺ 係數調整為 2。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷", hint: "左側 +2，右側 +2，完成！" }
+                                        ]
+                                },
+                                {
+                                        id: 'MnO4_I_Full',
+                                        title: 'MnO₄⁻ + I⁻    ➔    Mn²⁺ + I₂ (酸性)',
+                                        reactants: [
+                                                { name: 'MnO<span class="chem-sub">4</span><span class="chem-sup">-</span>(aq)', role: 'O.A.', desc: '高錳酸離子' },
+                                                { name: 'I<span class="chem-sup">-</span>(aq)', role: 'R.A.', desc: '碘離子' }
+                                        ],
+                                        initialState: {
+                                                reactants: [{ id: 'MnO4-', count: 1 }, { id: 'I-', count: 1 }],
+                                                products: [{ id: 'Mn2+', count: 1 }, { id: 'I2', count: 1 }]
+                                        },
+                                        targetState: {
+                                                reactants: { 'MnO4-': 2, 'I-': 10, 'H+': 16 },
+                                                products: { 'Mn2+': 2, 'I2': 5, 'H2O': 8 }
+                                        },
+                                        steps: [
+                                                { 
+                                                        checkType: 'main_ratio_full_8', 
+                                                        instruction: "步驟 1：平衡 MnO₄⁻ 與 I⁻ 的電子得失比例",
+                                                        tableData: {
+                                                                headers: ['物質', '主要元素', '反應前氧化數', '反應後氧化數', '變化', '得失電子'],
+                                                                rows: [
+                                                                        ['MnO₄⁻ ➔ Mn²⁺', 'Mn', '+7', '+2', '減少 5', '得 5e⁻ (×2)'],
+                                                                        ['2I⁻ ➔ I₂', 'I', '-1 (共2個)', '0 (共2個)', '每個增1', '共失 2e⁻ (×5)']
+                                                                ]
+                                                        }, 
+                                                        hint: "Mn 得 5e⁻，I₂ 形成失 2e⁻。最小公倍數是 10。因此需要 2 個 MnO₄⁻ 和 5 個 I₂ (即 10 個 I⁻)。請相應調整這四者的係數。" 
+                                                },
+                                                { checkType: 'O', instruction: "步驟 2：利用 H₂O 平衡 O 原子", hint: "左側有 8 個 O (2 × 4)，請拖拽並在右側加入 8 個 H₂O。" },
+                                                { checkType: 'H', instruction: "步驟 3：利用 H⁺ 平衡 H 原子", hint: "右側有 16 個 H (8 × 2)，請拖拽並在左側加入 16 個 H⁺。" },
+                                                { checkType: 'charge', instruction: "步驟 4：檢查總電荷", hint: "左側：(2 × -1) + (10 × -1) + 16 = +4\n右側：2 × +2 = +4\n完美平衡！" }
+                                        ]
+                                }
+                        ],
+                        extraAgents: [
+                                { name: 'Cl<span class="chem-sub">2</span>(g)', role: 'O.A.', desc: '黃綠色氯氣' },
+                                { name: 'Br<span class="chem-sub">2</span>(aq)', role: 'O.A.', desc: '橙棕色溴水' },
+                                { name: 'Zn(s)', role: 'R.A.', desc: '灰色鋅金屬' }
+                        ]
+                };
+
+                // Active State Datastructure
+                let activeWorkspaceData = {
+                        reactants: [],
+                        products: []
+                };
+
+                function setDifficulty(level) {
+                        currentDifficulty = level;
+                        currentEqIndex = 0;
+                        currentStepIndex = 0;
+
+                        document.querySelectorAll('.diff-btn').forEach(btn => {
+                                btn.classList.remove('ring-4', 'ring-blue-400', 'scale-[1.02]');
+                        });
+                        const activeBtn = document.getElementById(`btn-diff-${level}`);
+                        if(activeBtn) activeBtn.classList.add('ring-4', 'ring-blue-400', 'scale-[1.02]');
+
+                        const workspace = document.getElementById('workspace');
+                        workspace.classList.remove('hidden');
+
+                        setupWorkspaceTabs();
+                        loadCurrentEquation();
+                }
+
+                function setupWorkspaceTabs() {
+                        const container = document.getElementById('equation-selector-container');
+                        container.innerHTML = '';
+
+                        const list = (currentDifficulty <= 2) ? equationsData.halfReactions : equationsData.fullReactions;
+
+                        list.forEach((eq, idx) => {
+                                const btn = document.createElement('button');
+                                btn.className = `px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1 shrink-0 ${idx === currentEqIndex ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
+                                btn.innerHTML = `<span>題 ${idx + 1}</span>`;
+                                btn.onclick = () => {
+                                        currentEqIndex = idx;
+                                        currentStepIndex = 0;
+                                        setupWorkspaceTabs();
+                                        loadCurrentEquation();
+                                };
+                                container.appendChild(btn);
+                        });
+                }
+
+                function loadCurrentEquation() {
+                        const eq = (currentDifficulty <= 2) 
+                                ? equationsData.halfReactions[currentEqIndex]
+                                : equationsData.fullReactions[currentEqIndex];
+
+                        const badge = document.getElementById('workspace-badge');
+                        const title = document.getElementById('workspace-title');
+                        
+                        badge.innerText = `難度 ${currentDifficulty} - ${currentDifficulty <= 2 ? '半反應式' : '完整反應式'} (第 ${currentEqIndex + 1} / 8 題)`;
+                        title.innerHTML = eq.title;
+
+                        const wizard = document.getElementById('wizard-container');
+                        const hintDrawer = document.getElementById('hint-drawer');
+
+                        if (currentDifficulty === 1 || currentDifficulty === 3) {
+                                wizard.classList.remove('hidden');
+                                hintDrawer.classList.add('hidden');
+                                updateStepWizardUI(eq);
+                        } else {
+                                wizard.classList.add('hidden');
+                                hintDrawer.classList.remove('hidden');
+                                setupHintDrawer(eq);
+                        }
+
+                        // Clone Initial State
+                        activeWorkspaceData = {
+                                reactants: JSON.parse(JSON.stringify(eq.initialState.reactants)),
+                                products: JSON.parse(JSON.stringify(eq.initialState.products))
+                        };
+
+                        renderWorkspaceBoxes();
+                        setupAgentSection(eq);
+
+                        document.getElementById('feedback-banner').classList.add('hidden');
+                        document.getElementById('agent-feedback').classList.add('hidden');
+                        document.getElementById('step-feedback').innerText = '';
+                        const statusPill = document.getElementById('step-status-pill');
+                        if (statusPill) {
+                                statusPill.innerText = '進行中';
+                                statusPill.className = 'text-xs px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 font-bold';
+                        }
+                }
+
+                function updateStepWizardUI(eq) {
+                        document.getElementById('current-step-num').innerText = currentStepIndex + 1;
+                        document.getElementById('total-step-num').innerText = eq.steps.length;
+                        
+                        const stepObj = eq.steps[currentStepIndex];
+                        document.getElementById('step-instruction').innerText = stepObj.instruction;
+                        document.getElementById('step-hint-text').innerText = stepObj.hint;
+                        document.getElementById('step-feedback').innerHTML = '';
+
+                        const extInfo = document.getElementById('step-extended-info');
+                        extInfo.innerHTML = '';
+                        
+                        if (stepObj.tableData && currentDifficulty === 3) {
+                                let tableHTML = `<div class="overflow-x-auto"><table class="ox-table bg-white min-w-[500px]"><thead><tr>`;
+                                stepObj.tableData.headers.forEach(h => {
+                                        tableHTML += `<th>${h}</th>`;
+                                });
+                                tableHTML += `</tr></thead><tbody>`;
+                                
+                                stepObj.tableData.rows.forEach(row => {
+                                        tableHTML += `<tr>`;
+                                        row.forEach(cell => {
+                                                tableHTML += `<td>${cell}</td>`;
+                                        });
+                                        tableHTML += `</tr>`;
+                                });
+                                tableHTML += `</tbody></table></div>`;
+                                extInfo.innerHTML = tableHTML;
+                        }
+                }
+
+                function setupHintDrawer(eq) {
+                        const content = document.getElementById('hint-drawer-content');
+                        content.innerHTML = eq.steps.map((s, i) => `
+                                <div class="flex items-start gap-2">
+                                        <span class="font-bold text-amber-700">${i + 1}.</span>
+                                        <div><strong>${s.instruction}:</strong> ${s.hint}</div>
+                                </div>
+                        `).join('');
+                }
+
+                function toggleHintDrawer() {
+                        const content = document.getElementById('hint-drawer-content');
+                        const arrow = document.getElementById('hint-drawer-arrow');
+                        content.classList.toggle('hidden');
+                        arrow.innerText = content.classList.contains('hidden') ? '▼' : '▲';
+                }
+
+                function renderWorkspaceBoxes() {
+                        ['reactants', 'products'].forEach(side => {
+                                const box = document.getElementById(`${side}-box`);
+                                box.innerHTML = '';
+
+                                if (activeWorkspaceData[side].length === 0) {
+                                        box.innerHTML = `<div class="text-slate-400 text-base font-bold w-full text-center py-8">請從工具箱添加物質</div>`;
+                                        return;
+                                }
+
+                                activeWorkspaceData[side].forEach((item, index) => {
+                                        if (index > 0) {
+                                                const plus = document.createElement('div');
+                                                plus.className = 'text-3xl font-extrabold text-slate-400 mx-1 flex-shrink-0 select-none';
+                                                plus.innerText = '+';
+                                                box.appendChild(plus);
+                                        }
+
+                                        const card = createSpeciesCard(item, side, index);
+                                        box.appendChild(card);
+                                });
+                        });
+                }
+
+                function createSpeciesCard(item, side, index) {
+                        const config = speciesConfig[item.id] || { html: item.id, colorClass: 'color-clear', name: item.id, isMain: false };
+
+                        const card = document.createElement('div');
+                        // Fixed width and layout parameters prevent element height/width flickering during count updates
+                        card.className = 'flex items-center bg-white border-2 border-slate-200 rounded-xl px-2.5 py-2 shadow-xs transition shrink-0 select-none';
+
+                        const tubeHtml = config.isMain ? `
+                                <div class="flex flex-col items-center mr-2">
+                                        <div class="test-tube-mini ${config.colorClass}" title="${config.name}"></div>
+                                </div>
+                        ` : '';
+
+                        const deleteBtn = !config.isMain 
+                                ? `<button onclick="removeSpecies('${side}', ${index})" class="text-slate-300 hover:text-red-500 hover:bg-red-50 font-bold ml-1 text-2xl w-8 h-8 flex items-center justify-center rounded-full transition" title="移除此物質">×</button>`
+                                : '';
+
+                        card.innerHTML = `
+                                <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 border border-slate-200 mr-2 shadow-inner">
+                                        <button onclick="updateCountDirect('${side}', ${index}, -1)" class="w-8 h-8 rounded bg-white hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-lg shadow-xs leading-none active:scale-95 transition-transform">-</button>
+                                        <span id="count-display-${side}-${index}" class="w-8 text-center font-bold text-blue-700 font-mono text-xl tabular-nums">${item.count}</span>
+                                        <button onclick="updateCountDirect('${side}', ${index}, 1)" class="w-8 h-8 rounded bg-white hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-lg shadow-xs leading-none active:scale-95 transition-transform">+</button>
+                                </div>
+                                
+                                <div class="flex items-center justify-center">
+                                        ${tubeHtml}
+                                        <div class="text-2xl font-bold font-mono text-slate-800 tracking-wider">${config.html}</div>
+                                </div>
+                                
+                                ${deleteBtn}
+                        `;
+
+                        return card;
+                }
+
+                // Direct count update without DOM re-render prevents layout jitter / jump
+                function updateCountDirect(side, index, delta) {
+                        const item = activeWorkspaceData[side][index];
+                        if (item) {
+                                item.count += delta;
+                                if (item.count <= 0) {
+                                        const config = speciesConfig[item.id];
+                                        if (config && !config.isMain) {
+                                                activeWorkspaceData[side].splice(index, 1);
+                                                renderWorkspaceBoxes();
+                                                return;
+                                        } else {
+                                                item.count = 1;
+                                        }
+                                }
+                                const display = document.getElementById(`count-display-${side}-${index}`);
+                                if (display) {
+                                        display.innerText = item.count;
+                                } else {
+                                        renderWorkspaceBoxes();
+                                }
+                        }
+                }
+
+                function removeSpecies(side, index) {
+                        activeWorkspaceData[side].splice(index, 1);
+                        renderWorkspaceBoxes();
+                }
+
+                function handleTokenDragStart(e, tokenType) {
+                        draggedTokenType = tokenType;
+                        e.dataTransfer.setData('text/plain', tokenType);
+                        e.dataTransfer.effectAllowed = 'copy';
+                }
+
+                function handleDragOver(e) {
+                        e.preventDefault();
+                        e.currentTarget.classList.add('drag-over');
+                }
+
+                function handleDragLeave(e) {
+                        e.currentTarget.classList.remove('drag-over');
+                }
+
+                function handleDrop(e, side) {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove('drag-over');
+                        
+                        const tokenType = e.dataTransfer.getData('text/plain') || draggedTokenType;
+                        if (tokenType) {
+                                addSpeciesDirectly(tokenType, side);
+                                draggedTokenType = null;
+                        }
+                }
+
+                function addSpeciesDirectly(tokenType, side) {
+                        const existing = activeWorkspaceData[side].find(x => x.id === tokenType);
+                        if (existing) {
+                                existing.count += 1;
+                        } else {
+                                activeWorkspaceData[side].push({ id: tokenType, count: 1 });
+                        }
+                        renderWorkspaceBoxes();
+                }
+
+                function resetCurrentWorkspace() {
+                        loadCurrentEquation();
+                }
+
+                function getSideTotals(side) {
+                        let totals = { charge: 0 };
+                        activeWorkspaceData[side].forEach(item => {
+                                const props = speciesProperties[item.id] || {};
+                                const count = item.count;
+                                for (let key in props) {
+                                        totals[key] = (totals[key] || 0) + (props[key] * count);
+                                }
+                        });
+                        return totals;
+                }
+
+                function verifyCurrentStep() {
+                        const eq = (currentDifficulty <= 2) 
+                                ? equationsData.halfReactions[currentEqIndex]
+                                : equationsData.fullReactions[currentEqIndex];
+                        
+                        const step = eq.steps[currentStepIndex];
+                        const left = getSideTotals('reactants');
+                        const right = getSideTotals('products');
+                        
+                        let passed = false;
+                        let errorMsg = '';
+
+                        if (step.checkType === 'charge') {
+                                passed = (left.charge === right.charge);
+                                if(!passed) errorMsg = `電荷未平衡！左側總電荷: ${left.charge > 0 ? '+'+left.charge : left.charge}，右側總電荷: ${right.charge > 0 ? '+'+right.charge : right.charge}`;
+                        } else if (step.checkType.startsWith('main_ratio_full')) {
+                                // 修正：在第一步只檢查「初始」主要反應物與生成物的比例，忽略後續才會加入的 H+ 或 H2O
+                                const initialReactantIds = eq.initialState.reactants.map(r => r.id);
+                                const initialProductIds = eq.initialState.products.map(p => p.id);
+
+                                let specificErrors = [];
+                                initialReactantIds.forEach(id => {
+                                        const found = activeWorkspaceData.reactants.find(x => x.id === id);
+                                        const currentCount = found ? found.count : 0;
+                                        const targetCount = eq.targetState.reactants[id];
+                                        if (currentCount !== targetCount) {
+                                                const name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                                specificErrors.push(`左側 <strong>${name}</strong> 應為 ${targetCount} (目前: ${currentCount})`);
+                                        }
+                                });
+                                
+                                initialProductIds.forEach(id => {
+                                        const found = activeWorkspaceData.products.find(x => x.id === id);
+                                        const currentCount = found ? found.count : 0;
+                                        const targetCount = eq.targetState.products[id];
+                                        if (currentCount !== targetCount) {
+                                                const name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                                specificErrors.push(`右側 <strong>${name}</strong> 應為 ${targetCount} (目前: ${currentCount})`);
+                                        }
+                                });
+
+                                if (specificErrors.length > 0) {
+                                        passed = false;
+                                        errorMsg = '主要物質數量不正確：<br/><span class="text-sm font-normal mt-1 block leading-relaxed">' + specificErrors.join('<br/>') + '</span>';
+                                } else {
+                                        passed = true;
+                                }
+                        } else {
+                                const el = step.checkType;
+                                const lCount = left[el] || 0;
+                                const rCount = right[el] || 0;
+                                passed = (lCount === rCount);
+                                if(!passed) errorMsg = `${el} 原子未平衡！左側有 ${lCount} 個，右側有 ${rCount} 個。`;
+                        }
+
+                        const feedback = document.getElementById('step-feedback');
+                        
+                        if (passed) {
+                                feedback.innerHTML = `<span class="text-green-600 font-bold bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">✅ 驗證成功！</span>`;
+                                
+                                setTimeout(() => {
+                                        if (currentStepIndex < eq.steps.length - 1) {
+                                                currentStepIndex++;
+                                                updateStepWizardUI(eq);
+                                        } else {
+                                                feedback.innerHTML = `<span class="text-green-700 font-extrabold text-base">🎉 太棒了！本方程式已完全正確平衡！</span>`;
+                                                document.getElementById('step-status-pill').innerText = '已完成';
+                                                document.getElementById('step-status-pill').className = 'text-xs px-3 py-1.5 rounded-full bg-green-100 text-green-800 font-bold';
+                                                
+                                                checkAnswer();
+                                        }
+                                }, 800);
+
+                        } else {
+                                feedback.innerHTML = `<span class="text-red-600 font-bold bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">❌ 錯誤: ${errorMsg}</span>`;
+                        }
+                }
+
+                function checkAnswer() {
+                        const eq = (currentDifficulty <= 2) 
+                                ? equationsData.halfReactions[currentEqIndex]
+                                : equationsData.fullReactions[currentEqIndex];
+
+                        const feedback = document.getElementById('feedback-banner');
+                        feedback.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-amber-100', 'text-amber-800', 'text-left');
+
+                        const currentReactantsMap = {};
+                        activeWorkspaceData.reactants.forEach(item => { currentReactantsMap[item.id] = item.count; });
+
+                        const currentProductsMap = {};
+                        activeWorkspaceData.products.forEach(item => { currentProductsMap[item.id] = item.count; });
+
+                        let errors = [];
+
+                        // Check Reactants
+                        for (let id in eq.targetState.reactants) {
+                                let targetCount = eq.targetState.reactants[id];
+                                let currentCount = currentReactantsMap[id] || 0;
+                                let name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                if (currentCount === 0) {
+                                        errors.push(`左側 (反應物) 缺少: <strong>${name}</strong> <span class="text-slate-500">(需加入 ${targetCount} 個)</span>`);
+                                } else if (currentCount !== targetCount) {
+                                        let diff = targetCount - currentCount;
+                                        let action = diff > 0 ? `需再加 ${diff}` : `需減少 ${Math.abs(diff)}`;
+                                        errors.push(`左側 (反應物) <strong>${name}</strong> 的數量有誤 <span class="text-slate-500">(目前: ${currentCount}，${action})</span>`);
+                                }
+                        }
+                        for (let id in currentReactantsMap) {
+                                let name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                if (!eq.targetState.reactants[id]) {
+                                        errors.push(`左側多出不需要的: <strong>${name}</strong> <span class="text-slate-500">(請完全移除)</span>`);
+                                }
+                        }
+
+                        // Check Products
+                        for (let id in eq.targetState.products) {
+                                let targetCount = eq.targetState.products[id];
+                                let currentCount = currentProductsMap[id] || 0;
+                                let name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                if (currentCount === 0) {
+                                        errors.push(`右側 (生成物) 缺少: <strong>${name}</strong> <span class="text-slate-500">(需加入 ${targetCount} 個)</span>`);
+                                } else if (currentCount !== targetCount) {
+                                        let diff = targetCount - currentCount;
+                                        let action = diff > 0 ? `需再加 ${diff}` : `需減少 ${Math.abs(diff)}`;
+                                        errors.push(`右側 (生成物) <strong>${name}</strong> 的數量有誤 <span class="text-slate-500">(目前: ${currentCount}，${action})</span>`);
+                                }
+                        }
+                        for (let id in currentProductsMap) {
+                                let name = speciesConfig[id] ? speciesConfig[id].name : id;
+                                if (!eq.targetState.products[id]) {
+                                        errors.push(`右側多出不需要的: <strong>${name}</strong> <span class="text-slate-500">(請完全移除)</span>`);
+                                }
+                        }
+
+                        if (errors.length === 0) {
+                                feedback.innerHTML = "🎉 太棒了！方程式已完全正確平衡！";
+                                feedback.classList.add('bg-green-100', 'text-green-800');
+                                feedback.classList.remove('text-left');
+
+                                if (currentDifficulty === 1 || currentDifficulty === 3) {
+                                        currentStepIndex = eq.steps.length - 1;
+                                        document.getElementById('step-status-pill').innerText = '已完成';
+                                        document.getElementById('step-status-pill').className = 'text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-800 font-bold';
+                                }
+                        } else {
+                                feedback.innerHTML = `<div class="mb-2 font-bold text-lg">❌ 尚未完全正確，詳細錯誤提示：</div><ul class="list-disc list-inside space-y-1 text-sm md:text-base ml-2">${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+                                feedback.classList.add('bg-red-100', 'text-red-800', 'text-left');
+                        }
+                }
+
+                function setupAgentSection(eq) {
+                        const section = document.getElementById('agent-section');
+                        const tbody = document.getElementById('agent-table-body');
+                        tbody.innerHTML = '';
+
+                        section.classList.remove('hidden');
+
+                        let itemList = [];
+                        if (currentDifficulty <= 2) {
+                                itemList = [{ name: eq.reactantName, role: eq.reactantRole, desc: eq.desc || '待分析半反應物' }];
+                        } else {
+                                itemList = eq.reactants;
+                        }
+
+                        const combined = [...itemList, ...equationsData.extraAgents];
+
+                        combined.forEach((item, index) => {
+                                const tr = document.createElement('tr');
+                                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+
+                                tr.innerHTML = `
+                                        <td class="p-3.5 font-bold font-mono text-slate-800">${item.name}</td>
+                                        <td class="p-3.5 text-xs text-slate-500">${item.desc || '無色水溶液'}</td>
+                                        <td class="p-3.5">
+                                                <select class="agent-select bg-white border border-slate-300 text-slate-800 text-sm rounded-lg p-2 font-medium focus:ring-2 focus:ring-blue-400 outline-none w-full max-w-xs" data-expected="${item.role}">
+                                                        <option value="">-- 請選擇 --</option>
+                                                        <option value="O.A.">O.A. (氧化劑 Oxidizing Agent)</option>
+                                                        <option value="R.A.">R.A. (還原劑 Reducing Agent)</option>
+                                                </select>
+                                        </td>
+                                `;
+                                tbody.appendChild(tr);
+                        });
+                }
+
+                function checkAgents() {
+                        const selects = document.querySelectorAll('.agent-select');
+                        let allCorrect = true;
+                        let complete = true;
+
+                        selects.forEach(select => {
+                                const val = select.value;
+                                const expected = select.dataset.expected;
+
+                                if (!val) {
+                                        complete = false;
+                                        return;
+                                }
+
+                                if (val === expected) {
+                                        select.classList.remove('border-red-400', 'bg-red-50');
+                                        select.classList.add('border-green-500', 'bg-green-50', 'text-green-800');
+                                } else {
+                                        select.classList.remove('border-green-500', 'bg-green-50');
+                                        select.classList.add('border-red-400', 'bg-red-50', 'text-red-800');
+                                        allCorrect = false;
+                                }
+                        });
+
+                        const feedback = document.getElementById('agent-feedback');
+                        feedback.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-amber-100', 'text-amber-800');
+
+                        if (!complete) {
+                                feedback.innerText = "請完成所有反應物的分類選擇。";
+                                feedback.classList.add('bg-amber-100', 'text-amber-800');
+                        } else if (allCorrect) {
+                                feedback.innerText = "🌟 全部分類正確！你非常清楚氧化劑與還原劑的特性！";
+                                feedback.classList.add('bg-green-100', 'text-green-800');
+                        } else {
+                                feedback.innerText = "部分分類標示有誤，請重新檢查紅框選項。";
+                                feedback.classList.add('bg-red-100', 'text-red-800');
+                        }
+                }
+
+                // Auto load Level 1 on initial boot
+                window.onload = function() {
+                        setDifficulty(1);
+                };
+        </script>
+</body>
+</html>
